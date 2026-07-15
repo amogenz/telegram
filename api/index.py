@@ -5,7 +5,8 @@ from fastapi.responses import HTMLResponse
 from pydantic import BaseModel
 from telethon import TelegramClient
 from telethon.sessions import StringSession
-from telethon.tl.functions.help import GetConfigRequest
+# KITA BERI ALIAS 'TelegramGetConfigRequest' BIAR TIDAK BENTROK
+from telethon.tl.functions.help import GetConfigRequest as TelegramGetConfigRequest
 
 app = FastAPI()
 
@@ -31,7 +32,8 @@ class VerifyOTPRequest(BaseModel):
     temp_session: str
     phone_code_hash: str
 
-class GetConfigRequest(BaseModel):
+# NAMA SKEMA DIUBAH MENJADI 'GetConfigSchema' AGAR AMAN
+class GetConfigSchema(BaseModel):
     api_id: int
     api_hash: str
     session: str
@@ -67,11 +69,12 @@ async def verify_otp(req: VerifyOTPRequest):
         raise HTTPException(status_code=400, detail=str(e))
 
 @app.post("/api/get_config")
-async def get_config(req: GetConfigRequest):
+async def get_config(req: GetConfigSchema):
     try:
         client = TelegramClient(StringSession(req.session), req.api_id, req.api_hash)
         await client.connect()
-        config = await client(GetConfigRequest())
+        # MEMANGGIL FUNGSI ALIAS TELETHON YANG ASLI
+        config = await client(TelegramGetConfigRequest())
         config_dict = config.to_dict()
         await client.disconnect()
         return {"config": json.loads(json.dumps(config_dict, default=str))}
@@ -123,7 +126,6 @@ async def get_ui():
             .tab-content { display: none; }
             .tab-content.active { display: block; }
             
-            /* Telegram Feed Card */
             .channel-header { display: flex; align-items: center; margin-bottom: 16px; padding: 8px 0; }
             .channel-avatar { width: 42px; height: 42px; background: linear-gradient(135deg, #5288c1, #2b5278); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 16px; color: white; margin-right: 12px; }
             .channel-meta h3 { font-size: 15px; font-weight: 600; }
@@ -132,7 +134,6 @@ async def get_ui():
             .tg-message { background-color: var(--chat-bg); border-radius: 12px; padding: 14px; margin-bottom: 16px; box-shadow: 0 1px 2px rgba(0,0,0,0.2); }
             .tg-message-text { font-size: 14px; line-height: 1.4; margin-bottom: 8px; }
             
-            /* Git Diff Graphic Box */
             .diff-container { background-color: #111c27; border-radius: 8px; border: 1px solid var(--input-border); overflow: hidden; margin: 10px 0; font-family: monospace; font-size: 12px; }
             .diff-file-header { background-color: #1c2a38; padding: 6px 10px; color: var(--text-secondary); border-bottom: 1px solid var(--input-border); font-size: 11px; }
             .diff-line { padding: 3px 10px; display: flex; white-space: pre-wrap; word-break: break-all; }
@@ -142,7 +143,6 @@ async def get_ui():
             
             .tg-message-footer { display: flex; justify-content: flex-end; align-items: center; font-size: 11px; color: var(--text-secondary); margin-top: 6px; }
             
-            /* Form Fields */
             .input-group { margin-bottom: 16px; }
             .input-group label { display: block; color: var(--accent-color); font-size: 12px; font-weight: 500; margin-bottom: 6px; }
             .input-group input { width: 100%; background-color: var(--input-bg); border: 1px solid var(--input-border); border-radius: 8px; padding: 12px; color: var(--text-color); font-size: 15px; outline: none; }
@@ -223,14 +223,14 @@ async def get_ui():
                     document.getElementById('login-box').style.display = 'none';
                     document.getElementById('profile-box').style.display = 'block';
                     document.getElementById('connected-id').innerText = apiId;
-                    document.getElementById('logout-btn').style.display = 'block'; // FIX TYPO DISINI
+                    document.getElementById('logout-btn').style.display = 'block';
                     document.getElementById('channel-status').innerText = "Sudah Sinkron • Memantau Server Telegram Aktif";
                     
                     runAutoTracker(session, apiId, localStorage.getItem('tg_api_hash'));
                 } else {
                     document.getElementById('login-box').style.display = 'block';
                     document.getElementById('profile-box').style.display = 'none';
-                    document.getElementById('logout-btn').style.display = 'none'; // FIX TYPO DISINI
+                    document.getElementById('logout-btn').style.display = 'none';
                     switchTab('auth-tab', document.getElementById('nav-auth'));
                 }
             }
@@ -292,7 +292,9 @@ async def get_ui():
                 try {
                     const res = await fetch('/api/get_config', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ api_id: parseInt(apiId), api_hash: apiHash, session: session }) });
                     const data = await res.json();
-                    if (!res.ok) throw new Error("Gagal mengambil update sistem.");
+                    
+                    // MENAMPILKAN TEKS ERROR ASLI DARI FASTAPI JIKA ADA MASALAH
+                    if (!res.ok) throw new Error(data.detail || "Gagal mengambil update sistem.");
 
                     const newConfig = data.config;
                     const oldConfigStr = localStorage.getItem('tg_last_cached_config');
