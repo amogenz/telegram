@@ -5,7 +5,7 @@ from fastapi.responses import HTMLResponse
 from pydantic import BaseModel
 from telethon import TelegramClient
 from telethon.sessions import StringSession
-from telethon.tl.functions.help import GetConfigRequest # FIX ERROR DISINI
+from telethon.tl.functions.help import GetConfigRequest
 
 app = FastAPI()
 
@@ -71,7 +71,6 @@ async def get_config(req: GetConfigRequest):
     try:
         client = TelegramClient(StringSession(req.session), req.api_id, req.api_hash)
         await client.connect()
-        # Menggunakan GetConfigRequest() yang benar sesuai dokumentasi Telethon terbaru
         config = await client(GetConfigRequest())
         config_dict = config.to_dict()
         await client.disconnect()
@@ -90,6 +89,10 @@ async def get_ui():
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>Telegram Live Leaker Portal</title>
+        
+        <script src="https://cdn.jsdelivr.net/npm/eruda"></script>
+        <script>eruda.init();</script>
+
         <style>
             :root {
                 --bg-color: #0e1621;
@@ -109,7 +112,7 @@ async def get_ui():
             body { background-color: var(--bg-color); color: var(--text-color); display: flex; flex-direction: column; min-height: 100vh; }
             .app-bar { background-color: var(--header-color); padding: 16px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 4px rgba(0,0,0,0.3); }
             .app-bar h1 { font-size: 18px; font-weight: 500; }
-            .logout-btn { background: none; border: 1px solid var(--error-color); color: #ec3b3b; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 12px; display: none; }
+            .logout-btn { background: none; border: 1px solid #ec3b3b; color: #ec3b3b; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 12px; display: none; }
             
             .tabs { display: flex; background-color: var(--header-color); border-bottom: 1px solid var(--input-border); }
             .tab-btn { flex: 1; background: none; border: none; color: var(--text-secondary); padding: 14px 0; font-size: 13px; font-weight: 500; cursor: pointer; text-transform: uppercase; position: relative; text-align: center; }
@@ -220,15 +223,14 @@ async def get_ui():
                     document.getElementById('login-box').style.display = 'none';
                     document.getElementById('profile-box').style.display = 'block';
                     document.getElementById('connected-id').innerText = apiId;
-                    document.getElementById('logout-btn').style.style.display = 'block';
+                    document.getElementById('logout-btn').style.display = 'block'; // FIX TYPO DISINI
                     document.getElementById('channel-status').innerText = "Sudah Sinkron • Memantau Server Telegram Aktif";
                     
-                    // Eksekusi pemantauan otomatis secara ghaib
                     runAutoTracker(session, apiId, localStorage.getItem('tg_api_hash'));
                 } else {
                     document.getElementById('login-box').style.display = 'block';
                     document.getElementById('profile-box').style.display = 'none';
-                    document.getElementById('logout-btn').style.style.display = 'none';
+                    document.getElementById('logout-btn').style.display = 'none'; // FIX TYPO DISINI
                     switchTab('auth-tab', document.getElementById('nav-auth'));
                 }
             }
@@ -275,7 +277,6 @@ async def get_ui():
                     const data = await res.json();
                     if (!res.ok) throw new Error(data.detail || "Otorisasi gagal");
 
-                    // SIMPAN DATA LOGIN DI BROWSER BIAR GAK LOGIN LAGI
                     localStorage.setItem('tg_session', data.session);
                     localStorage.setItem('tg_api_id', apiId);
                     localStorage.setItem('tg_api_hash', apiHash);
@@ -297,13 +298,11 @@ async def get_ui():
                     const oldConfigStr = localStorage.getItem('tg_last_cached_config');
                     let oldConfig = oldConfigStr ? JSON.parse(oldConfigStr) : null;
                     
-                    // Simpan data terbaru buat perbandingan kunjungan besok
                     localStorage.setItem('tg_last_cached_config', JSON.stringify(newConfig));
 
                     let htmlOutput = "";
                     let timeNow = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
 
-                    // JIKA INI KUNJUNGAN PERTAMA KALI (INITIAL SYNC)
                     if (!oldConfig) {
                         htmlOutput = `
                             <div class="tg-message">
@@ -319,7 +318,6 @@ async def get_ui():
                             </div>
                         `;
                     } else {
-                        // DETEKSI PERUBAHAN SECARA LIVE & OTOMATIS
                         let changesDetected = [];
                         for (let key in newConfig) {
                             if (JSON.stringify(oldConfig[key]) !== JSON.stringify(newConfig[key])) {
@@ -335,8 +333,6 @@ async def get_ui():
                             let diffLines = "";
                             changesDetected.forEach(c => {
                                 diffLines += `<div class="diff-line del">- "${c.key}": ${JSON.stringify(c.oldVal)}</div>`;
-                                diffLines += `<br>`;
-                                diffLines += `<br>`;
                                 diffLines += `<div class="diff-line add">+ "${c.key}": ${JSON.stringify(c.newVal)}</div>`;
                             });
 
@@ -351,7 +347,6 @@ async def get_ui():
                                 </div>
                             `;
                         } else {
-                            // JIKA TIDAK ADA YANG BERUBAH SEJAK KUNJUNGAN TERAKHIR
                             htmlOutput = `
                                 <div class="tg-message">
                                     <div class="tg-message-text">🟢 <b>[SERVER STABIL]</b><br>Tidak ada pembaruan data atau potongan kode UI baru dari server Telegram sejak kunjungan terakhirmu bray. Semua masih sinkron secara normal.</div>
@@ -374,8 +369,6 @@ async def get_ui():
                 window.location.reload();
             }
         </script>
-           <script src="https://cdn.jsdelivr.net/npm/eruda"></script>
-   <script>eruda.init();</script>
     </body>
     </html>
     """
