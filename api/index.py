@@ -374,6 +374,8 @@ async def get_ui():
                 window.location.reload();
             }
         </script>
+           <script src="https://cdn.jsdelivr.net/npm/eruda"></script>
+   <script>eruda.init();</script>
     </body>
     </html>
     """
